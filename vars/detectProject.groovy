@@ -73,7 +73,7 @@ def call(Map config = [:]) {
         ) {
             result.appType = 'react'
             result.artifactType = 'zip'
-            result.artifactPath = 'dist/**'
+            result.artifactPath = 'react-build.zip'
 
             echo 'React application detected.'
         } else {
