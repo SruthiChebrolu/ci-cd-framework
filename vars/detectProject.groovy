@@ -1,57 +1,131 @@
-def call() {
+def call(Map config = [:]) {
 
-    def project = [:]
+    echo '========================================'
+    echo ' Detecting Project Type and Build Tool'
+    echo '========================================'
 
+    def result = [:]
+
+    /*
+     * Maven project
+     */
     if (fileExists('pom.xml')) {
 
-        def pom = readMavenPom file: 'pom.xml'
+        echo 'pom.xml detected.'
 
-        project.buildTool = 'maven'
+        result.buildTool = 'maven'
 
-        if (pom.packaging == 'war') {
+        /*
+         * Determine whether this is Spring Boot
+         * or a standard Java Maven application.
+         */
+        def pomContent = readFile('pom.xml')
 
-            project.appType = 'java-war'
-            project.artifactType = 'war'
-            project.artifactPath = 'target/*.war'
-
+        if (pomContent.contains('spring-boot')) {
+            result.appType = 'springboot'
+            echo 'Application Type : Spring Boot'
         } else {
-
-            project.appType = 'springboot'
-            project.artifactType = 'jar'
-            project.artifactPath = 'target/*.jar'
+            result.appType = 'java'
+            echo 'Application Type : Java'
         }
 
-    } else if (fileExists('package.json')) {
-
-        def pkg = readJSON file: 'package.json'
-
-        def deps = [:]
-
-        deps.putAll(pkg.dependencies ?: [:])
-        deps.putAll(pkg.devDependencies ?: [:])
-
-        if (deps.containsKey('react')) {
-
-            project.appType = 'react'
-            project.buildTool = 'npm'
-            project.artifactType = 'zip'
-            project.artifactPath = 'react-build.zip'
-
+        /*
+         * Determine artifact type.
+         */
+        if (pomContent.contains('<packaging>war</packaging>')) {
+            result.artifactType = 'war'
+            result.artifactPath = 'target/*.war'
         } else {
-
-            error('Only React npm project is supported in this demo.')
+            result.artifactType = 'jar'
+            result.artifactPath = 'target/*.jar'
         }
-
-    } else {
-
-        error('Unsupported project type.')
     }
 
-    echo """
-Project Type : ${project.appType}
-Build Tool   : ${project.buildTool}
-Artifact     : ${project.artifactType}
-"""
+    /*
+     * Gradle project
+     */
+    else if (
+        fileExists('build.gradle') ||
+        fileExists('build.gradle.kts')
+    ) {
 
-    return project
+        result.appType = 'java'
+        result.buildTool = 'gradle'
+        result.artifactType = 'jar'
+        result.artifactPath = 'build/libs/*.jar'
+
+        echo 'Gradle project detected.'
+    }
+
+    /*
+     * Node / React project
+     */
+    else if (fileExists('package.json')) {
+
+        def packageContent = readFile('package.json')
+
+        result.buildTool = 'npm'
+
+        if (
+            packageContent.contains('"react"') ||
+            packageContent.contains('"react-dom"')
+        ) {
+            result.appType = 'react'
+            result.artifactType = 'zip'
+            result.artifactPath = 'dist/**'
+
+            echo 'React application detected.'
+        } else {
+            result.appType = 'nodejs'
+            result.artifactType = 'zip'
+            result.artifactPath = 'dist/**'
+
+            echo 'Node.js application detected.'
+        }
+    }
+
+    /*
+     * Python project
+     */
+    else if (
+        fileExists('requirements.txt') ||
+        fileExists('pyproject.toml') ||
+        fileExists('setup.py')
+    ) {
+
+        result.appType = 'python'
+        result.buildTool = 'pip'
+        result.artifactType = 'python-package'
+        result.artifactPath = 'dist/*'
+
+        echo 'Python application detected.'
+    }
+
+    /*
+     * Unsupported project
+     */
+    else {
+
+        error '''
+Unable to determine project type.
+
+Supported project markers:
+- pom.xml
+- build.gradle
+- build.gradle.kts
+- package.json
+- requirements.txt
+- pyproject.toml
+- setup.py
+'''
+    }
+
+    echo '----------------------------------------'
+    echo "Application Type : ${result.appType}"
+    echo "Build Tool       : ${result.buildTool}"
+    echo "Artifact Type    : ${result.artifactType}"
+    echo "Artifact Path    : ${result.artifactPath}"
+    echo '----------------------------------------'
+
+    return result
 }
