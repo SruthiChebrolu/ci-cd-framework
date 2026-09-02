@@ -33,12 +33,13 @@ def call(Map config = [:]) {
          * Determine artifact type.
          */
         if (pomContent.contains('<packaging>war</packaging>')) {
+            result.appType = 'java-war'
             result.artifactType = 'war'
             result.artifactPath = 'target/*.war'
-        } else {
-            result.artifactType = 'jar'
-            result.artifactPath = 'target/*.jar'
-        }
+}   else {
+     result.artifactType = 'jar'
+     result.artifactPath = 'target/*.jar'
+}
     }
 
     /*
