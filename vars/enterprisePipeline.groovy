@@ -138,7 +138,7 @@ def call() {
 
                 steps {
                     script {
-                        approveGate()
+                        approvalGate()
                     }
                 }
             }
