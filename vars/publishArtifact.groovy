@@ -35,33 +35,29 @@ Build       : ${env.BUILD_NUMBER}
             "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.zip"
     }
 
-    else if (project.artifactType == 'war') {
+else if (project.artifactType == 'war') {
 
-        bat """
-            for %%F in (${project.artifactPath}) do (
-                copy /Y "%%F" "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.war"
-                
-            )
-            
-        """
+    bat """
+        for %%F in (target\\*.war) do (
+            copy /Y "%%F" "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.war"
+        )
+    """
 
-        env.PUBLISHED_ARTIFACT =
-            "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.war"
-    }
+    env.PUBLISHED_ARTIFACT =
+        "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.war"
+}
 
-    else if (project.artifactType == 'jar') {
+else if (project.artifactType == 'jar') {
 
-        bat """
-            for %%F in (${project.artifactPath}) do (
-                copy /Y "%%F" "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.jar"
-                
-            )
-            
-        """
+    bat """
+        for %%F in (target\\*.jar) do (
+            copy /Y "%%F" "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.jar"
+        )
+    """
 
-        env.PUBLISHED_ARTIFACT =
-            "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.jar"
-    }
+    env.PUBLISHED_ARTIFACT =
+        "release\\${env.APP_NAME}-${env.BUILD_NUMBER}.jar"
+}
 
     else {
 
