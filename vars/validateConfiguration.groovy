@@ -6,13 +6,17 @@ VALIDATE CONFIGURATION
 ====================================================
 """
 
+    if (!env.APP_NAME?.trim()) {
+        env.APP_NAME = env.JOB_BASE_NAME
+        echo "APP_NAME not configured. Using Jenkins job name: ${env.APP_NAME}"
+    }
+
     def required = [
         APP_NAME: env.APP_NAME,
         APP_TYPE: env.APP_TYPE,
         BUILD_TOOL: env.BUILD_TOOL,
         ARTIFACT_TYPE: env.ARTIFACT_TYPE
     ]
-
     required.each { key, value ->
 
         if (!value?.trim()) {
