@@ -143,34 +143,47 @@ def call() {
                 }
             }
 
-            stage('Deploy and Validate') {
-                when {
-                    expression {
-                        return env.DEPLOYMENT_ENABLED == 'true'
-                    }
+stage('Deploy and Validate') {
+    when {
+        expression {
+            return env.DEPLOYMENT_ENABLED == 'true'
+        }
+    }
+
+    steps {
+        script {
+
+            def project = [
+                appType: env.APP_TYPE,
+                buildTool: env.BUILD_TOOL,
+                artifactType: env.ARTIFACT_TYPE,
+                artifactPath: env.ARTIFACT_PATH
+            ]
+
+            try {
+
+                deployApplication(project)
+
+                env.DEPLOYMENT_STATUS = 'DEPLOYED'
+
+                if (env.HEALTH_CHECK_ENABLED == 'true') {
+
+                    healthCheck()
+
+                    env.DEPLOYMENT_STATUS = 'HEALTHY'
+
+                } else {
+
+                    echo 'Health check is disabled.'
                 }
 
-                steps {
-                    script {
+                recordDeployment()
 
-                        try {
+            } catch (Exception e) {
 
-                            deployApplication()
+                env.DEPLOYMENT_STATUS = 'FAILED'
 
-                            env.DEPLOYMENT_STATUS = 'DEPLOYED'
-
-                            healthCheck()
-
-                            env.DEPLOYMENT_STATUS = 'HEALTHY'
-
-                            recordDeployment()
-                        }
-
-                        catch (Exception e) {
-
-                            env.DEPLOYMENT_STATUS = 'FAILED'
-
-                            echo """
+                echo """
 ====================================================
 DEPLOYMENT FAILED
 ====================================================
@@ -183,21 +196,21 @@ Starting rollback...
 ====================================================
 """
 
-                            if (
-                                env.ROLLBACK_ENABLED == 'true' &&
-                                env.AUTO_ROLLBACK == 'true'
-                            ) {
+                if (
+                    env.ROLLBACK_ENABLED == 'true' &&
+                    env.AUTO_ROLLBACK == 'true'
+                ) {
 
-                                rollbackApplication()
+                    rollbackApplication()
 
-                                env.DEPLOYMENT_STATUS = 'ROLLED_BACK'
-                            }
-
-                            error "Deployment failed: ${e.message}"
-                        }
-                    }
+                    env.DEPLOYMENT_STATUS = 'ROLLED_BACK'
                 }
+
+                error "Deployment failed: ${e.message}"
             }
+        }
+    }
+}
         }
 
         post {
