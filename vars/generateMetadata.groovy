@@ -5,10 +5,11 @@ def call(Map project) {
         returnStdout: true
     ).trim()
 
-    def branch = bat(
-        script: '@git rev-parse --abbrev-ref HEAD',
-        returnStdout: true
-    ).trim()
+   def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'main'
+
+if (branch.startsWith('origin/')) {
+    branch = branch.replace('origin/', '')
+}
 
     def appName = env.APP_NAME ?: env.JOB_BASE_NAME
     def deployEnv = env.DEPLOY_ENV ?: 'NOT_SELECTED'
