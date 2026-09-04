@@ -119,13 +119,15 @@ Artifact : ${env.PUBLISHED_ARTIFACT}
         "${env.PUBLISHED_ARTIFACT}" ^
         "deployment\\app.jar"
 
-        for /f "tokens=2" %%a in ('tasklist ^| findstr java.exe') do (
-            taskkill /PID %%a /F >nul 2>&1
-        )
+        powershell -NoProfile -Command ^
+            "\$process = Get-CimInstance Win32_Process | Where-Object { \$_.Name -eq 'java.exe' -and \$_.CommandLine -like '*deployment\\app.jar*' }; if (\$process) { \$process | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force } }"
 
-        start "" /B java -jar "deployment\\app.jar" > deployment\\springboot.log 2>&1
+        set JENKINS_NODE_COOKIE=dontKillMe
 
-        timeout /t 10 /nobreak >nul
+        powershell -NoProfile -Command ^
+            "Start-Process -FilePath 'java' -ArgumentList '-jar','deployment\\app.jar' -RedirectStandardOutput 'deployment\\springboot.log' -RedirectStandardError 'deployment\\springboot-error.log' -WindowStyle Hidden"
+
+        powershell -NoProfile -Command "Start-Sleep -Seconds 10"
     """
 
     echo 'Spring Boot application started locally.'
