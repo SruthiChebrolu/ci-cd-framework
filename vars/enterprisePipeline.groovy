@@ -15,6 +15,17 @@ def call() {
                 choices: ['DEV', 'SIT', 'QA', 'UAT', 'PROD'],
                 description: 'Environment to deploy the application'
             )
+            choice(
+    name: 'PIPELINE_MODE',
+    choices: ['BUILD_AND_DEPLOY', 'PROMOTE_EXISTING_ARTIFACT'],
+    description: 'Build a new artifact or promote an existing Jenkins artifact'
+)
+
+string(
+    name: 'SOURCE_BUILD_NUMBER',
+    defaultValue: '',
+    description: 'Jenkins build number containing the artifact to promote'
+)
         }
 
         stages {
@@ -57,8 +68,15 @@ def call() {
                 }
             }
 
-            stage('Build') {
-                steps {
+           stage('Build') {
+
+    when {
+        expression {
+            return params.PIPELINE_MODE == 'BUILD_AND_DEPLOY'
+        }
+    }
+
+    steps {
                     script {
 
                         def project = [
@@ -75,10 +93,11 @@ def call() {
 
             stage('Sonar Analysis') {
                 when {
-                    expression {
-                        return env.SONAR_ENABLED == 'true'
-                    }
-                }
+    expression {
+        return params.PIPELINE_MODE == 'BUILD_AND_DEPLOY' &&
+               env.SONAR_ENABLED == 'true'
+    }
+}
 
                 steps {
                     script {
@@ -96,7 +115,14 @@ def call() {
             }
 
             stage('Generate Metadata') {
-                steps {
+
+    when {
+        expression {
+            return params.PIPELINE_MODE == 'BUILD_AND_DEPLOY'
+        }
+    }
+
+    steps {
                     script {
 
                         env.DEPLOYMENT_STATUS = 'NOT_DEPLOYED'
@@ -114,7 +140,14 @@ def call() {
             }
 
             stage('Publish Artifact') {
-                steps {
+
+    when {
+        expression {
+            return params.PIPELINE_MODE == 'BUILD_AND_DEPLOY'
+        }
+    }
+
+    steps {
                     script {
 
                         def project = [
@@ -128,6 +161,27 @@ def call() {
                     }
                 }
             }
+            stage('Retrieve Artifact') {
+
+    when {
+        expression {
+            return params.PIPELINE_MODE == 'PROMOTE_EXISTING_ARTIFACT'
+        }
+    }
+
+    steps {
+        script {
+
+            if (!params.SOURCE_BUILD_NUMBER?.trim()) {
+                error 'SOURCE_BUILD_NUMBER is required when promoting an existing artifact.'
+            }
+
+            env.SOURCE_BUILD_NUMBER = params.SOURCE_BUILD_NUMBER
+
+            retrieveArtifact()
+        }
+    }
+}
 
             stage('Approval') {
                 when {
@@ -225,6 +279,8 @@ PIPELINE SUCCESS
 Application : ${env.APP_NAME ?: env.JOB_BASE_NAME}
 Type        : ${env.APP_TYPE}
 Build Tool  : ${env.BUILD_TOOL}
+Mode        : ${params.PIPELINE_MODE}
+Source Build: ${params.SOURCE_BUILD_NUMBER ?: 'N/A'}
 Artifact    : ${env.ARTIFACT_TYPE}
 Published   : ${env.PUBLISHED_ARTIFACT ?: 'N/A'}
 Environment : ${env.DEPLOY_ENV}
