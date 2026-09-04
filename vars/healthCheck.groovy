@@ -40,15 +40,7 @@ def httpHealthCheck() {
         env.EXPECTED_HTTP_STATUS ?: '200'
 
     bat """
-        powershell -NoProfile -Command ^
-        "\$response = Invoke-WebRequest -Uri '${env.HEALTH_CHECK_URL}' -UseBasicParsing; ^
-        if (\$response.StatusCode -ne ${expectedStatus}) { ^
-            Write-Host 'Health check failed'; ^
-            exit 1 ^
-        } else { ^
-            Write-Host 'Health check passed'; ^
-            Write-Host ('HTTP Status: ' + \$response.StatusCode) ^
-        }"
+        powershell -NoProfile -Command "\$response = Invoke-WebRequest -Uri '${env.HEALTH_CHECK_URL}' -UseBasicParsing; if (\$response.StatusCode -ne ${expectedStatus}) { Write-Host 'Health check failed'; exit 1 } else { Write-Host 'Health check passed'; Write-Host ('HTTP Status: ' + \$response.StatusCode) }"
     """
 
     echo """
