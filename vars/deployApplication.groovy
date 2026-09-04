@@ -118,11 +118,18 @@ Artifact : ${env.PUBLISHED_ARTIFACT}
         copy /Y ^
         "${env.PUBLISHED_ARTIFACT}" ^
         "deployment\\app.jar"
+
+        for /f "tokens=2" %%a in ('tasklist ^| findstr java.exe') do (
+            taskkill /PID %%a /F >nul 2>&1
+        )
+
+        start "" /B java -jar "deployment\\app.jar" > deployment\\springboot.log 2>&1
+
+        timeout /t 10 /nobreak >nul
     """
 
-    echo 'Spring Boot artifact deployed locally.'
+    echo 'Spring Boot application started locally.'
 }
-
 
 def deployNginx() {
 
