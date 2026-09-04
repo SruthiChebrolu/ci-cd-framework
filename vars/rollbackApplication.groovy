@@ -70,9 +70,17 @@ def rollbackSpringBoot() {
             exit /b 1
         )
 
+        powershell -NoProfile -Command "\$process = Get-CimInstance Win32_Process | Where-Object { \$_.Name -eq 'java.exe' -and \$_.CommandLine -like '*deployment\\app.jar*' }; if (\$process) { \$process | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force } }"
+
         copy /Y ^
         "deployment\\app.jar.bak" ^
         "deployment\\app.jar"
+
+        set JENKINS_NODE_COOKIE=dontKillMe
+
+        powershell -NoProfile -Command "Start-Process -FilePath 'java' -ArgumentList '-jar','deployment\\app.jar' -RedirectStandardOutput 'deployment\\springboot.log' -RedirectStandardError 'deployment\\springboot-error.log' -WindowStyle Hidden"
+
+        powershell -NoProfile -Command "Start-Sleep -Seconds 10"
     """
 
     echo 'Spring Boot rollback completed.'
